@@ -11,12 +11,21 @@
 <script>
 (async()=>{
   try{
-    const files=['_dash/part1.txt','_dash/part2.txt','_dash/part3.txt'];
-    const parts=await Promise.all(files.map(async u=>{
-      const r=await fetch(u+'?v=20260917-ups',{cache:'no-store'});
-      if(!r.ok)throw new Error('Falha ao carregar '+u);
-      return r.text();
-    }));
+    const base='https://raw.githubusercontent.com/eduardosm978-source/Dashboard-Setup/main/_dash/';
+    const files=['part1.txt','part2.txt','part3.txt'];
+    const fetchPart=async(name)=>{
+      let lastErr='';
+      for(let i=0;i<3;i++){
+        try{
+          const r=await fetch(base+name+'?v=20260917-fix2-'+Date.now(),{cache:'no-store'});
+          if(r.ok)return await r.text();
+          lastErr='HTTP '+r.status;
+        }catch(e){lastErr=e.message||String(e)}
+        await new Promise(res=>setTimeout(res,700));
+      }
+      throw new Error('Falha ao carregar '+name+' ('+lastErr+')');
+    };
+    const parts=await Promise.all(files.map(fetchPart));
     const b64=parts.join('').replace(/\s+/g,'');
     const bin=atob(b64);
     const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
@@ -32,7 +41,7 @@
     document.write(html);
     document.close();
   }catch(e){
-    document.getElementById('status').innerHTML='<b>Não foi possível carregar o dashboard</b>'+String(e.message||e);
+    document.getElementById('status').innerHTML='<b>Não foi possível carregar o dashboard</b>'+String(e.message||e)+'<br><small>Tente atualizar a página novamente.</small>';
   }
 })();
 </script>
