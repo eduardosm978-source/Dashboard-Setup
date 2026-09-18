@@ -1,69 +1,17 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard Grupo Setup</title>
-<style>
-body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7f5;color:#173522}
-.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
-.box{background:#fff;border:1px solid #dfe8e2;border-radius:16px;padding:26px;box-shadow:0 8px 28px rgba(20,60,35,.08)}
-.box b{display:block;color:#0b7a3b;font-size:18px;margin-bottom:8px}
-</style>
-</head>
-<body>
-<div class="loading"><div class="box" id="status"><b>Grupo Setup</b>Carregando dashboard atualizado...</div></div>
-<script>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard Grupo Setup</title><style>body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7f5;color:#173522}.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}.box{background:#fff;border:1px solid #dfe8e2;border-radius:16px;padding:26px;box-shadow:0 8px 28px rgba(20,60,35,.08)}.box b{display:block;color:#0b7a3b;font-size:18px;margin-bottom:8px}</style></head><body><div class="loading"><div class="box" id="status"><b>Grupo Setup</b>Carregando dashboard atualizado...</div></div><script>
+const SG='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',DG='H4sIACHQrWoC/13QSQqAMBBE0bu4VkgnxmEpEkRwwmkj3v8aGlHxu3w0XRS1BeMUVUsRlUrpNgg9B9d45qAoUkj+iiFj0pLJw75A1EUt5O9qyJi0H7ozuQMNqGUGLZl/ohol5FtyrHs/XUpmN9f62vksuR81JwhUeAEAAA==';
 (async()=>{
-  const RAW='https://raw.githubusercontent.com/eduardosm978-source/Dashboard-Setup/main/';
-  const VER='20260918-premiacao';
-  async function getText(path){
-    let last;
-    for(let i=0;i<3;i++){
-      try{
-        const r=await fetch(RAW+path+'?v='+VER+'&t='+i,{cache:'no-store'});
-        if(!r.ok)throw new Error('HTTP '+r.status+' em '+path);
-        return await r.text();
-      }catch(e){last=e;await new Promise(r=>setTimeout(r,350*(i+1)))}
-    }
-    throw last||new Error('Falha ao carregar '+path);
-  }
-  async function ungzipB64(b64){
-    const bin=atob(b64.replace(/\s+/g,''));
-    const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
-    if('DecompressionStream' in window){
-      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-      return await new Response(stream).text();
-    }
-    if(!window.pako){
-      await new Promise((ok,fail)=>{
-        const s=document.createElement('script');
-        s.src='https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';
-        s.onload=ok;s.onerror=fail;document.head.appendChild(s)
-      });
-    }
-    return pako.ungzip(bytes,{to:'string'});
-  }
-  try{
-    const [p1,p2,p3,metaB64]=await Promise.all([
-      getText('_dash/part1.txt'),
-      getText('_dash/part2.txt'),
-      getText('_dash/part3.txt'),
-      getText('_dash/structure_meta.b64')
-    ]);
-    let html=await ungzipB64((p1+p2+p3).replace(/\s+/g,''));
-    const newStructure=await ungzipB64(metaB64);
-    const a=html.indexOf('const STRUCTURE=');
-    const b=html.indexOf('const TEAM_MAP=',a);
-    if(a<0||b<=a)throw new Error('Estrutura do dashboard não localizada');
-    html=html.slice(0,a)+newStructure+'\n'+html.slice(b);
-    document.open();
-    document.write(html);
-    document.close();
-  }catch(e){
-    document.getElementById('status').innerHTML='<b>Não foi possível carregar o dashboard</b>'+String(e.message||e);
-  }
+ const status=document.getElementById('status');
+ async function gunzipB64(b64){const bin=atob(b64),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));if('DecompressionStream'in window){const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(stream).text();}await new Promise((ok,fail)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';s.onload=ok;s.onerror=fail;document.head.appendChild(s)});return pako.ungzip(bytes,{to:'string'});}
+ try{
+  const files=[1,2,3].map(n=>'https://raw.githubusercontent.com/eduardosm978-source/Dashboard-Setup/main/_dash/part'+n+'.txt?v=20260918-premiacao2');
+  const parts=await Promise.all(files.map(async u=>{let last;for(let i=0;i<3;i++){try{const r=await fetch(u+'&try='+i,{cache:'no-store'});if(r.ok)return r.text();last='HTTP '+r.status;}catch(e){last=e.message;}await new Promise(r=>setTimeout(r,400));}throw new Error('Falha ao carregar '+u+' - '+last);}));
+  let html=await gunzipB64(parts.join('').replace(/\s+/g,''));
+  const struct=await gunzipB64(SG), des=await gunzipB64(DG);
+  html=html.replace(new RegExp('const STRUCTURE=\\[.*?\\];\\nconst DESMOBILIZED_TEAMS=','s'),'const STRUCTURE='+struct+';\nconst DESMOBILIZED_TEAMS=');
+  html=html.replace(new RegExp('const DESMOBILIZED_TEAMS=new Set\\(\\[.*?\\]\\);','s'),'const DESMOBILIZED_TEAMS=new Set('+des+');');
+  html=html.replace(/>Meta mês</g,'>Meta premiação mês<').replace(/>Meta dia</g,'>Meta premiação dia<').replace(/>META MÊS DA EQUIPE</g,'>META PREMIAÇÃO DA EQUIPE<').replaceAll('Meta das equipes selecionadas','Meta premiação das equipes selecionadas').replaceAll('Meta diária das equipes selecionadas','Meta premiação diária das equipes selecionadas').replaceAll('Meta mensal fixa da equipe selecionada','Meta premiação mensal da equipe selecionada').replaceAll('Meta faturamento dia','Meta premiação dia');
+  document.open();document.write(html);document.close();
+ }catch(e){status.innerHTML='<b>Não foi possível carregar o dashboard</b>'+String(e.message||e);}
 })();
-</script>
-</body>
-</html>
+</script></body></html>
