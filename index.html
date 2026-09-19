@@ -5,190 +5,25 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard Grupo Setup</title>
 <style>
-body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7f5;color:#173522}.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}.box{background:#fff;border:1px solid #dfe8e2;border-radius:16px;padding:26px;box-shadow:0 8px 28px rgba(20,60,35,.08);max-width:720px}.box b{display:block;color:#0b7a3b;font-size:18px;margin-bottom:8px}.muted{font-size:12px;color:#69756d;margin-top:10px}
+body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7f5;color:#173522}.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}.box{background:#fff;border:1px solid #dfe8e2;border-radius:16px;padding:26px;box-shadow:0 8px 28px rgba(20,60,35,.08);max-width:760px}.box b{display:block;color:#0b7a3b;font-size:18px;margin-bottom:8px}.muted{font-size:12px;color:#69756d;margin-top:10px}
 </style>
 </head>
 <body>
 <div class="loading"><div class="box" id="status"><b>Grupo Setup</b>Carregando dashboard atualizado...</div></div>
 <script>
 const RAW='https://raw.githubusercontent.com/eduardosm978-source/Dashboard-Setup/main';
-const VER='20260918-base7-hidden-resumo';
-const BASE_FILES=['_dash/part1.txt','_dash/part2.txt','_dash/part3.txt'];
-const META_FILE='_dash/structure_meta.b64';
-const LOCAL_KEY='setup_base_resumo_override_v1';
-function setStatus(html){document.getElementById('status').innerHTML=html}
-async function fetchText(path){
-  const url=RAW+'/'+path+'?v='+VER+'&t='+Date.now();
-  let last='';
-  for(let i=1;i<=4;i++){
-    try{
-      const r=await fetch(url,{cache:'no-store',mode:'cors'});
-      if(r.ok)return await r.text();
-      last='HTTP '+r.status+' em '+path;
-    }catch(e){last=e.message||String(e)}
-    await new Promise(ok=>setTimeout(ok,350*i));
-  }
-  throw new Error('Falha ao carregar '+path+' — '+last);
-}
-function cleanB64(s){
-  s=String(s||'').replace(/[^A-Za-z0-9+/=]/g,'').replace(/=+$/,'');
-  const pad=(4-(s.length%4))%4;
-  return s+'='.repeat(pad);
-}
-async function gunzipB64(label,b64){
-  b64=cleanB64(b64);
-  let bin;
-  try{bin=atob(b64)}catch(e){throw new Error('Base64 inválido em '+label+' — '+e.message)}
-  const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
-  try{
-    if('DecompressionStream' in window){
-      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-      return await new Response(stream).text();
-    }
-    if(!window.pako){
-      await new Promise((ok,fail)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';s.onload=ok;s.onerror=fail;document.head.appendChild(s)});
-    }
-    return pako.ungzip(bytes,{to:'string'});
-  }catch(e){throw new Error('Falha ao descompactar '+label+' — '+(e.message||e))}
-}
-function parseMetaText(txt){
-  const parsed=JSON.parse(txt);
-  if(Array.isArray(parsed))return {structure:parsed,desmobilized:[],source:'estrutura antiga'};
-  return {structure:parsed.structure||[],desmobilized:parsed.desmobilized||parsed.desmobilizedTeams||[],source:parsed.source||'BASE_RESUMO'};
-}
-function applyStructureToHtml(html,payload){
-  if(!payload||!Array.isArray(payload.structure)||!payload.structure.length)return html;
-  const struct=JSON.stringify(payload.structure);
-  const des=JSON.stringify(Array.isArray(payload.desmobilized)?payload.desmobilized:[]);
-  html=html.replace(/const STRUCTURE=\[.*?\];/s,'const STRUCTURE='+struct+';');
-  html=html.replace(/const DESMOBILIZED_TEAMS=new Set\(\[.*?\]\);/s,'const DESMOBILIZED_TEAMS=new Set('+des+');');
-  return html;
-}
-function applyPremiacaoLabels(html){
-  return html.replace(/>Meta mês</g,'>Meta premiação mês<')
-    .replace(/>Meta dia</g,'>Meta premiação dia<')
-    .replace(/>META MÊS DA EQUIPE</g,'>META PREMIAÇÃO DA EQUIPE<')
-    .replaceAll('Meta das equipes selecionadas','Meta premiação das equipes selecionadas')
-    .replaceAll('Meta diária das equipes selecionadas','Meta premiação diária das equipes selecionadas')
-    .replaceAll('Meta mensal fixa da equipe selecionada','Meta premiação mensal da equipe selecionada')
-    .replaceAll('Meta faturamento dia','Meta premiação dia');
-}
-function injectHiddenBaseResumoLoader(html){
-  const script=`<scr`+`ipt>
-(function(){
-  const KEY='${LOCAL_KEY}';
-  function norm(s){return String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ').trim().toUpperCase()}
-  function txt(s){return String(s||'').replace(/\\u00a0/g,' ').replace(/\\s+/g,' ').trim().toUpperCase()}
-  function toNum(v){
-    if(v==null||v==='')return 0;
-    if(typeof v==='number')return v;
-    let s=String(v).replace(/R\\$/g,'').replace(/\\s/g,'');
-    if(s.includes(',')&&s.includes('.'))s=s.replace(/\\./g,'').replace(',','.'); else s=s.replace(',','.');
-    const n=Number(s); return Number.isFinite(n)?n:0;
-  }
-  function get(row,names){
-    const ks=Object.keys(row||{});
-    for(const name of names){const want=norm(name); for(const k of ks){if(norm(k)===want)return row[k];}}
-    return '';
-  }
-  function findRows(wb){
-    for(const name of wb.SheetNames){
-      const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{defval:'',raw:false});
-      if(!rows.length)continue;
-      const keys=Object.keys(rows[0]).map(norm);
-      if((keys.includes('PREFIXOS_SETUP')||keys.includes('EQUIPE'))&&(keys.includes('META PREMIACAO')||keys.includes('PROCESSO')))return rows;
-    }
-    throw new Error('Não encontrei a aba Base_resumo na planilha.');
-  }
-  function parseRows(rows){
-    const structure=[],des=[],seen=new Set();
-    for(const row of rows){
-      const equipe=txt(get(row,['PREFIXOS_SETUP','EQUIPE']));
-      if(!equipe)continue;
-      const mob=norm(get(row,['MOBILIZAÇÃO','MOBILIZACAO']));
-      if(mob&&mob!=='MOBILIZADA'){des.push(equipe);continue;}
-      if(seen.has(equipe))continue; seen.add(equipe);
-      const processo=txt(get(row,['PROCESSO']));
-      const metaPrem=toNum(get(row,['META PREMIAÇÃO','META PREMIACAO']))||toNum(get(row,['META MÊS','META MES']));
-      let diaTrab=toNum(get(row,['DIA TRAB CT','DIAS TRAB CT','DIA TRAB']));
-      if(!diaTrab)diaTrab=norm(processo).includes('PLANT')?30:22;
-      const metaDia=metaPrem&&diaTrab?metaPrem/diaTrab:0;
-      structure.push({
-        processo:processo,
-        coordenador:txt(get(row,['GERENTES','COORDENADOR','GERENTE'])),
-        supervisor:txt(get(row,['SUPERVISOR'])),
-        fiscal:txt(get(row,['FISCAL'])),
-        equipe:equipe,
-        turno:txt(get(row,['TURNO'])),
-        polo:txt(get(row,['POLO'])),
-        regional:txt(get(row,['REGIONAL'])),
-        mobilizacao:mob||'MOBILIZADA',
-        metaMes:Number(metaPrem.toFixed(6)),
-        metaDia:Number(metaDia.toFixed(6)),
-        metaPremiacao:Number(metaPrem.toFixed(6)),
-        diaTrabCt:Number.isInteger(diaTrab)?diaTrab:Number(diaTrab.toFixed(2)),
-        metaDiaOper:toNum(get(row,['META DIA'])),
-        metaMesOper:toNum(get(row,['META MÊS','META MES'])),
-        qtdEqp:toNum(get(row,['QTD EQP']))
-      });
-    }
-    if(!structure.length)throw new Error('Nenhuma equipe mobilizada encontrada na Base_resumo.');
-    return {structure,desmobilized:[...new Set(des)].sort()};
-  }
-  async function loadBase(file){
-    if(!window.XLSX)throw new Error('Biblioteca XLSX ainda não carregou. Atualize a página e tente novamente.');
-    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
-    const rows=findRows(wb);
-    const payload=parseRows(rows);
-    payload.source=file.name;
-    payload.updatedAt=new Date().toISOString();
-    localStorage.setItem(KEY,JSON.stringify(payload));
-    alert('BASE_RESUMO aplicada com '+payload.structure.length+' equipes mobilizadas e '+payload.desmobilized.length+' desmobilizadas. A página vai recarregar.');
-    location.href=location.pathname+'?v=base-local-'+Date.now();
-  }
-  function makeUI(){
-    const btn=document.createElement('button');
-    btn.type='button';btn.textContent='BR';btn.title='Base Resumo';
-    btn.style.cssText='position:fixed;right:10px;bottom:10px;width:38px;height:38px;border-radius:50%;z-index:2147483000;background:#0b7a3b;color:#fff;border:0;font-weight:900;opacity:.14;box-shadow:0 6px 18px #0004';
-    const panel=document.createElement('div');
-    panel.style.cssText='display:none;position:fixed;right:10px;bottom:56px;z-index:2147483000;background:#fff;border:2px solid #0b7a3b;border-radius:12px;padding:10px;width:240px;box-shadow:0 14px 40px #0004;font:12px Segoe UI,Arial;color:#173522';
-    const info=JSON.parse(localStorage.getItem(KEY)||'null');
-    panel.innerHTML='<b style="color:#0b7a3b">BASE_RESUMO oculta</b><div style="margin:6px 0;color:#69756d">Carregar metas, lideranças e equipes mobilizadas sem mexer no código.</div><button id="brLoad" type="button" style="width:100%;padding:8px;border-radius:8px;border:0;background:#0b7a3b;color:white;font-weight:800">Carregar BASE_RESUMO</button><button id="brClear" type="button" style="width:100%;padding:8px;border-radius:8px;border:1px solid #cfe0d4;background:#edf5f0;color:#0b7a3b;font-weight:800;margin-top:6px">Limpar base local</button><div style="font-size:10px;color:#69756d;margin-top:7px">'+(info?('Local: '+(info.source||'base')+' • '+(info.structure?info.structure.length:0)+' equipes'):'Usando base publicada no GitHub')+'</div>';
-    const inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv'; inp.style.display='none';
-    btn.onclick=()=>{panel.style.display=panel.style.display==='none'?'block':'none';btn.style.opacity='.9'};
-    document.body.appendChild(btn);document.body.appendChild(panel);document.body.appendChild(inp);
-    panel.querySelector('#brLoad').onclick=()=>inp.click();
-    panel.querySelector('#brClear').onclick=()=>{localStorage.removeItem(KEY);alert('Base local limpa. A página vai recarregar usando a base publicada no GitHub.');location.href=location.pathname+'?v=base-github-'+Date.now()};
-    inp.onchange=()=>{const f=inp.files&&inp.files[0]; if(!f)return; loadBase(f).catch(e=>alert('Erro ao carregar BASE_RESUMO: '+(e.message||e)))};
-    document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&String(e.key).toUpperCase()==='B')btn.click()});
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',makeUI); else makeUI();
-})();
-</scr`+`ipt>`;
-  return html.replace('</body>',script+'</body>');
-}
-(async()=>{
-  try{
-    setStatus('<b>Grupo Setup</b>Baixando dashboard...<div class="muted">Versão com BASE_RESUMO oculta.</div>');
-    const parts=await Promise.all(BASE_FILES.map(fetchText));
-    let html=await gunzipB64('dashboard',parts.join(''));
-    let payload=null;
-    try{
-      const local=localStorage.getItem(LOCAL_KEY);
-      if(local)payload=parseMetaText(local);
-    }catch(e){console.warn('Base local ignorada:',e)}
-    if(!payload){
-      const meta=await fetchText(META_FILE);
-      payload=parseMetaText(await gunzipB64('metas premiação',meta));
-    }
-    html=applyStructureToHtml(html,payload);
-    html=applyPremiacaoLabels(html);
-    html=injectHiddenBaseResumoLoader(html);
-    document.open();document.write(html);document.close();
-  }catch(e){
-    setStatus('<b>Não foi possível carregar o dashboard</b>'+String(e.message||e)+'<div class="muted">Feche esta aba e abra novamente. Se persistir, envie este erro.</div>');
-  }
-})();
+const VER='20260918-base7-direct-part4';
+const FILES=['_dash/part1.txt','_dash/part2.txt','_dash/part3.txt','_dash/part4.txt'];
+const META='_dash/structure_meta.b64';
+const S=document.getElementById('status');
+function msg(t){S.innerHTML=t}
+async function get(p){let last='';for(let i=1;i<=4;i++){try{const r=await fetch(RAW+'/'+p+'?v='+VER+'&t='+Date.now(),{cache:'no-store'});if(r.ok)return await r.text();last='HTTP '+r.status}catch(e){last=e.message||String(e)}await new Promise(ok=>setTimeout(ok,300*i))}throw new Error('Falha ao carregar '+p+' — '+last)}
+function clean(s){s=String(s||'').replace(/[^A-Za-z0-9+/=]/g,'').replace(/=+$/,'');return s+'='.repeat((4-s.length%4)%4)}
+function b64bytes(label,input){const c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';let s=clean(input),out=[],buf=0,bits=0,v=0;for(let ch of s){if(ch==='=')break;let n=c.indexOf(ch);if(n<0)continue;buf=(buf<<6)|n;bits+=6;v++;if(bits>=8){bits-=8;out.push((buf>>bits)&255)}}if(out.length<20||v<20)throw new Error('Base64 inválido em '+label);return new Uint8Array(out)}
+async function ungzip(label,b64){const bytes=b64bytes(label,b64);try{if('DecompressionStream' in window){const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(stream).text()}if(!window.pako){await new Promise((ok,fail)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';s.onload=ok;s.onerror=fail;document.head.appendChild(s)})}return pako.ungzip(bytes,{to:'string'})}catch(e){throw new Error('Falha ao descompactar '+label+' — '+(e.message||e))}}
+function labels(h){return h.replace(/>Meta mês</g,'>Meta premiação mês<').replace(/>Meta dia</g,'>Meta premiação dia<').replace(/>META MÊS DA EQUIPE</g,'>META PREMIAÇÃO DA EQUIPE<').replaceAll('Meta das equipes selecionadas','Meta premiação das equipes selecionadas').replaceAll('Meta diária das equipes selecionadas','Meta premiação diária das equipes selecionadas').replaceAll('Meta mensal fixa da equipe selecionada','Meta premiação mensal da equipe selecionada').replaceAll('Meta faturamento dia','Meta premiação dia')}
+function applyMeta(h,txt){let p=JSON.parse(txt);let st=Array.isArray(p)?p:(p.structure||[]),des=Array.isArray(p)?[]:(p.desmobilized||p.desmobilizedTeams||[]);h=h.replace(/const STRUCTURE=\[.*?\];/s,'const STRUCTURE='+JSON.stringify(st)+';');h=h.replace(/const DESMOBILIZED_TEAMS=new Set\(\[.*?\]\);/s,'const DESMOBILIZED_TEAMS=new Set('+JSON.stringify(des)+');');return h}
+(async()=>{try{msg('<b>Grupo Setup</b>Baixando dashboard...<div class="muted">Carregamento corrigido com a parte 4 e sem erro de codificação.</div>');let parts=await Promise.all(FILES.map(get));let html=await ungzip('dashboard',parts.join(''));let meta=await ungzip('metas premiação',await get(META));html=labels(applyMeta(html,meta));document.open();document.write(html);document.close()}catch(e){msg('<b>Não foi possível carregar o dashboard</b>'+String(e.message||e)+'<div class="muted">Feche a aba e abra novamente com ?v=base7fix2. Se persistir, envie este erro.</div>')}})();
 </script>
 </body>
 </html>
