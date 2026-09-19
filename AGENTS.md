@@ -49,4 +49,7 @@ Qualquer alteração que não produza esses totais deve ser interrompida e inves
 - Não usar `_dash/part*.txt`, loaders divididos, `atob`, base64, gzip ou `DecompressionStream`.
 - Manter uma cópia de faturamento embutida como fallback para que o dashboard abra mesmo se a consulta remota falhar.
 - A base de faturamento pode ser atualizada pelo fluxo aprovado do painel/Supabase; isso não altera a estrutura da BASE_RESUMO.
+- A cada nova publicação de faturamento, substituir o registro atual e excluir todos os registros anteriores no Supabase.
+- A publicação só pode ser mostrada como concluída depois de confirmar que existe exatamente um registro de faturamento na tabela.
+- Se a exclusão falhar por permissão, mostrar erro claro e não informar sucesso.
 - Antes de publicar, validar sintaxe, abertura da página, filtros, totais e funcionamento em tela móvel.
