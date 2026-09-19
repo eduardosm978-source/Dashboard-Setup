@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<script>
+(()=>{const u=new URL(location.href);if(!u.searchParams.has('_fresh')){u.searchParams.set('_fresh',Date.now().toString());location.replace(u.href);return}u.searchParams.delete('_fresh');history.replaceState(null,'',u.pathname+(u.searchParams.toString()?`?${u.searchParams}`:'')+u.hash)})();
+</script>
 <title>Dashboard de Faturamento Operacional - Grupo Setup</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
