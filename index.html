@@ -5,46 +5,71 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard Grupo Setup</title>
 <style>
-body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7f5;color:#173522}.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}.box{background:#fff;border:1px solid #dfe8e2;border-radius:16px;padding:26px;box-shadow:0 8px 28px rgba(20,60,35,.08);max-width:760px}.box b{display:block;color:#0b7a3b;font-size:18px;margin-bottom:8px}.small{font-size:12px;color:#69756d;margin-top:8px}
+body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7f5;color:#173522}.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}.box{background:#fff;border:1px solid #dfe8e2;border-radius:16px;padding:26px;box-shadow:0 8px 28px rgba(20,60,35,.08);max-width:720px}.box b{display:block;color:#0b7a3b;font-size:18px;margin-bottom:8px}.muted{font-size:12px;color:#69756d;margin-top:10px}
 </style>
 </head>
 <body>
-<div class="loading"><div class="box" id="status"><b>Grupo Setup</b>Carregando dashboard atualizado...<div class="small">Aguarde alguns segundos.</div></div></div>
+<div class="loading"><div class="box" id="status"><b>Grupo Setup</b>Carregando dashboard atualizado...</div></div>
 <script>
-(async()=>{
-  const status=document.getElementById('status');
+const RAW='https://raw.githubusercontent.com/eduardosm978-source/Dashboard-Setup/main';
+const VER='20260918-final-loader-raw';
+const BASE_FILES=['_dash/part1.txt','_dash/part2.txt','_dash/part3.txt'];
+const META_FILE='_dash/structure_meta.b64';
+function setStatus(html){document.getElementById('status').innerHTML=html}
+async function fetchText(path){
+  const url=RAW+'/'+path+'?v='+VER+'&t='+Date.now();
+  let last;
+  for(let i=1;i<=4;i++){
+    try{
+      const r=await fetch(url,{cache:'no-store',mode:'cors'});
+      if(r.ok)return await r.text();
+      last='HTTP '+r.status+' em '+path;
+    }catch(e){last=e.message||String(e)}
+    await new Promise(ok=>setTimeout(ok,350*i));
+  }
+  throw new Error('Falha ao carregar '+path+' — '+last);
+}
+function cleanB64(s){
+  s=String(s||'').replace(/[^A-Za-z0-9+/=]/g,'').replace(/=+$/,'');
+  const pad=(4-(s.length%4))%4;
+  return s+'='.repeat(pad);
+}
+async function gunzipB64(label,b64){
+  b64=cleanB64(b64);
+  let bin;
+  try{bin=atob(b64)}catch(e){throw new Error('Base64 inválido em '+label+' — '+e.message)}
+  const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
   try{
-    const base='https://raw.githubusercontent.com/eduardosm978-source/Dashboard-Setup/main/';
-    const version='20260918-fix-loader';
-    const files=['_dash/part1.txt','_dash/part2.txt','_dash/part3.txt'];
-    const parts=[];
-    for(const f of files){
-      let txt='',ok=false,lastErr='';
-      for(let i=1;i<=3;i++){
-        try{
-          const r=await fetch(base+f+'?v='+version+'-'+Date.now(),{cache:'no-store'});
-          if(!r.ok) throw new Error('HTTP '+r.status);
-          txt=await r.text(); ok=true; break;
-        }catch(e){lastErr=String(e.message||e); await new Promise(res=>setTimeout(res,350*i));}
-      }
-      if(!ok) throw new Error('Falha ao carregar '+f+' — '+lastErr);
-      parts.push(txt.trim());
-    }
-    let b64=parts.join('').replace(/[^A-Za-z0-9+/=]/g,'');
-    while(b64.length%4)b64+='=';
-    const bin=atob(b64);
-    const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
-    let html;
     if('DecompressionStream' in window){
       const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-      html=await new Response(stream).text();
-    }else{
-      await new Promise((ok,fail)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';s.onload=ok;s.onerror=fail;document.head.appendChild(s)});
-      html=pako.ungzip(bytes,{to:'string'});
+      return await new Response(stream).text();
     }
+    if(!window.pako){
+      await new Promise((ok,fail)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';s.onload=ok;s.onerror=fail;document.head.appendChild(s)});
+    }
+    return pako.ungzip(bytes,{to:'string'});
+  }catch(e){throw new Error('Falha ao descompactar '+label+' — '+(e.message||e))}
+}
+(async()=>{
+  try{
+    setStatus('<b>Grupo Setup</b>Baixando dashboard...<div class="muted">Carregamento corrigido sem base64 inline.</div>');
+    const parts=await Promise.all(BASE_FILES.map(fetchText));
+    let html=await gunzipB64('dashboard',parts.join(''));
+    try{
+      const meta=await fetchText(META_FILE);
+      const struct=await gunzipB64('metas premiação',meta);
+      html=html.replace(/const STRUCTURE=\[.*?\];/s,'const STRUCTURE='+struct+';');
+      html=html.replace(/>Meta mês</g,'>Meta premiação mês<')
+               .replace(/>Meta dia</g,'>Meta premiação dia<')
+               .replace(/>META MÊS DA EQUIPE</g,'>META PREMIAÇÃO DA EQUIPE<')
+               .replaceAll('Meta das equipes selecionadas','Meta premiação das equipes selecionadas')
+               .replaceAll('Meta diária das equipes selecionadas','Meta premiação diária das equipes selecionadas')
+               .replaceAll('Meta mensal fixa da equipe selecionada','Meta premiação mensal da equipe selecionada')
+               .replaceAll('Meta faturamento dia','Meta premiação dia');
+    }catch(e){console.warn('Metas premiação não aplicadas:',e)}
     document.open();document.write(html);document.close();
   }catch(e){
-    status.innerHTML='<b>Não foi possível carregar o dashboard</b>'+String(e.message||e)+'<div class="small">Feche esta aba e abra novamente. Se persistir, me envie este print.</div>';
+    setStatus('<b>Não foi possível carregar o dashboard</b>'+String(e.message||e)+'<div class="muted">Feche esta aba e abra novamente. Se persistir, envie este erro.</div>');
   }
 })();
 </script>
