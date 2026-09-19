@@ -49,8 +49,9 @@ Qualquer alteração que não produza esses totais deve ser interrompida e inves
 - Não usar `_dash/part*.txt`, loaders divididos, `atob`, base64, gzip ou `DecompressionStream`.
 - Manter uma cópia de faturamento embutida como fallback para que o dashboard abra mesmo se a consulta remota falhar.
 - A base de faturamento pode ser atualizada pelo fluxo aprovado do painel/Supabase; isso não altera a estrutura da BASE_RESUMO.
-- A cada nova publicação, sobrescrever o mesmo registro atual com todos os dados da nova planilha.
-- Não criar um novo registro como alternativa quando a atualização falhar, pois isso acumula versões.
-- Não executar DELETE pelo navegador: a chave pública não possui essa permissão.
-- Só usar INSERT quando ainda não existir nenhum registro de faturamento.
+- Projeto Supabase oficial: `mcjlknvrqgmveixyqkyo` (`Dashboard Setup`).
+- A tabela `dashboard_faturamento` é singleton: deve existir somente o registro `id = 1`.
+- A cada nova publicação, sobrescrever o registro `id = 1` com todos os dados da nova planilha.
+- A chave pública possui apenas SELECT e UPDATE; INSERT e DELETE permanecem bloqueados para impedir versões extras.
+- Não criar outro registro como alternativa quando uma atualização falhar.
 - Antes de publicar, validar sintaxe, abertura da página, filtros, totais e funcionamento em tela móvel.
