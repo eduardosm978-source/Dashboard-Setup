@@ -710,6 +710,23 @@ async function publicarBaseSupabase(nomeArquivo){
   ({data,error}=await sb.from('dashboard_faturamento').insert(payload).select('id,nome_arquivo,atualizado_em').single());
  }
  if(error)throw error;
+
+ // Mantém somente a base recém-publicada. As versões anteriores não podem
+ // permanecer acumuladas no banco, pois aumentam o armazenamento sem uso.
+ const {error:erroLimpeza}=await sb
+  .from('dashboard_faturamento')
+  .delete()
+  .neq('id',data.id);
+ if(erroLimpeza)throw new Error('A nova base foi enviada, mas não foi possível excluir as bases anteriores. Verifique a permissão DELETE no Supabase.');
+
+ // Confirma que a tabela ficou com um único registro antes de informar sucesso.
+ const {data:registrosRestantes,error:erroVerificacao}=await sb
+  .from('dashboard_faturamento')
+  .select('id');
+ if(erroVerificacao)throw new Error('A base foi enviada, mas não foi possível confirmar a limpeza das versões anteriores.');
+ if(!Array.isArray(registrosRestantes)||registrosRestantes.length!==1||registrosRestantes[0].id!==data.id){
+  throw new Error('A publicação não foi concluída: ainda existem bases anteriores armazenadas.');
+ }
  let atualizado=formatarAtualizacao(data.atualizado_em);
  $('baseStatus').textContent=`Base atualizada ${atualizado}`;
  $('publicBaseInfo').textContent=`Base publicada: ${data.nome_arquivo||nomeArquivo} • Atualizada em ${atualizado}`;
